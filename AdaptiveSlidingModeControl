@@ -1,0 +1,68 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.integrate import odeint
+
+# Definition of the system dynamics (second-order system)
+def system_dynamics(x, t, u):
+    A = np.array([[0, 1], [-2, -1]])
+    B = np.array([0, 1])
+    dxdt = A @ x + B * u
+    return dxdt
+
+# Adaptive sliding mode control with Lyapunov function
+def adaptive_sliding_control(x, r, alpha, beta, gamma):
+    e = x[0] - r[0]
+    de = x[1] - r[1]
+    
+    # Sliding surfaces
+    s1 = e + alpha * de
+    s2 = de + beta * np.sign(s1)
+    
+    # Control law
+    u = -gamma * np.sign(s2)
+    return u
+
+# Lyapunov function to ensure convergence
+def lyapunov_function(x, r, alpha, beta, gamma):
+    e = x[0] - r[0]
+    de = x[1] - r[1]
+    
+    V = 0.5 * e**2 + 0.5 * alpha * de**2
+    return V
+
+# Simulation of the system
+t = np.linspace(0, 10, 1000)
+x0 = np.array([0, 0])
+r = np.array([1, 0])  # Reference
+x = np.zeros((len(t), 2))
+u = np.zeros_like(t)
+
+# Controller parameters (adjusted for convergence)
+alpha = 2.5
+beta = 1.5
+gamma = 2.5
+
+for i in range(1, len(t)):
+    dt = t[i] - t[i - 1]
+    u[i] = adaptive_sliding_control(x[i - 1], r, alpha, beta, gamma)
+    x[i] = x[i - 1] + dt * system_dynamics(x[i - 1], t[i], u[i])
+
+# Visualization
+plt.figure(figsize=(12, 8))
+
+plt.subplot(2, 1, 1)
+plt.plot(t, x[:,0], 'b-', label='System Response')
+plt.plot(t, [r[0]] * len(t), 'r--', label='Reference')
+plt.ylabel('Position')
+plt.title('Adaptive Sliding Mode Control with Lyapunov Response')
+plt.legend()
+
+plt.subplot(2, 1, 2)
+plt.plot(t, u, 'k-', label='Control Signal')
+plt.xlabel('Time')
+plt.ylabel('Control')
+plt.title('Control Signal')
+plt.legend()
+
+plt.tight_layout()
+plt.show()
